@@ -7,8 +7,8 @@ import (
 	"syscall"
 	"time"
 
-	"bbcbear/sps30-exporter/internal/app"
-	"bbcbear/sps30-exporter/internal/config"
+	"bbcbear/scd41-exporter/internal/app"
+	"bbcbear/scd41-exporter/internal/config"
 	"log/slog"
 )
 

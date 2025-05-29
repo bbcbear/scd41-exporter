@@ -3,7 +3,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"bbcbear/sps30-exporter/internal/sensor"
+	"bbcbear/scd41-exporter/internal/sensor"
 )
 
 var (
@@ -14,8 +14,8 @@ var (
 func Register() {
 	SensorMetrics = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "sps30_value",
-			Help: "SPS30 sensor values with type and unit labels",
+			Name: "scd41_value",
+			Help: "SCD41 sensor values with type and unit labels",
 		},
 		[]string{"type", "unit"},
 	)

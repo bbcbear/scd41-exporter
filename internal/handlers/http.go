@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"bbcbear/sps30-exporter/internal/sensor"
+	"bbcbear/scd41-exporter/internal/sensor"
 )
 
 func Init(sensorRef sensor.Sensor, isHealthy atomic.Bool) http.Handler {

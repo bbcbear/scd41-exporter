@@ -1,9 +1,9 @@
 package app
 
 import (
-	"bbcbear/sps30-exporter/internal/handlers"
-	"bbcbear/sps30-exporter/internal/metrics"
-	"bbcbear/sps30-exporter/internal/sensor"
+	"bbcbear/scd41-exporter/internal/handlers"
+	"bbcbear/scd41-exporter/internal/metrics"
+	"bbcbear/scd41-exporter/internal/sensor"
 	"context"
 	"log/slog"
 	"net/http"

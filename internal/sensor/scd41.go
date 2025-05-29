@@ -73,9 +73,9 @@ func (s *SCD4XSensor) Read() (Measurement, error) {
 	tempRaw := binary.BigEndian.Uint16(buf[3:5])
 	humRaw := binary.BigEndian.Uint16(buf[6:8])
 
-	co2 		:= float32(co2Raw)
-	temperature := -45.0 + 175.0*float32(tempRaw)/65535.0
-	humidity 	:= 100.0 * float32(humRaw) / 65535.0
+	co2 		:= float64(co2Raw)
+	temperature := -45.0 + 175.0*float64(tempRaw)/65535.0
+	humidity 	:= 100.0 * float64(humRaw) / 65535.0
 
 	return Measurement{
 		CO2:         co2,
