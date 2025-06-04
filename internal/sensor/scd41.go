@@ -48,7 +48,13 @@ func (s *SCD4XSensor) Init() error {
 }
 
 func (s *SCD4XSensor) Stop() error {
-	return s.sendCommand(cmdStopPeriodicMeasurement, nil)
+	if err := s.sendCommand(cmdStopPeriodicMeasurement, nil); err != nil {
+		return err
+	}
+	// According to the datasheet, the sensor will respond to other commands
+	// only 500 ms after stop_periodic_measurement has been issued.
+	time.Sleep(500 * time.Millisecond)
+	return nil
 }
 
 func (s *SCD4XSensor) Clean() error {
@@ -59,7 +65,7 @@ func (s *SCD4XSensor) Read() (Measurement, error) {
 	if err := s.sendCommand(cmdReadMeasurement, nil); err != nil {
 		return Measurement{}, fmt.Errorf("sendCommand error: %w", err)
 	}
-	time.Sleep(1 * time.Millisecond) // Обычно достаточно
+	time.Sleep(2 * time.Millisecond) // Обычно достаточно
 
 	buf := make([]byte, 9)
 	if err := s.bus.Tx(nil, buf); err != nil {
@@ -114,7 +120,7 @@ func (s *SCD4XSensor) IsMeasuring() (bool, error) {
 	if err := s.sendCommand(cmdGetDataReadyStatus, nil); err != nil {
 		return false, err
 	}
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(3 * time.Millisecond)
 
 	buf := make([]byte, 3)
 	if err := s.bus.Tx(nil, buf); err != nil {
@@ -124,7 +130,8 @@ func (s *SCD4XSensor) IsMeasuring() (bool, error) {
 		return false, fmt.Errorf("CRC error")
 	}
 	status := binary.BigEndian.Uint16(buf[:2])
-	return status != 0, nil
+	dataReady := (status & 0x07FF) != 0
+	return dataReady, nil
 }
 
 func validCRC(data []byte, crc byte) bool {

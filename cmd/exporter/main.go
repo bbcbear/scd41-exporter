@@ -17,7 +17,7 @@ func main() {
 	slog.Info("Application starting")
 
 	addr := config.GetEnv("METRICS_ADDR", ":2113")
-	pollInterval := config.GetEnvDuration("POLL_INTERVAL", 2*time.Second)
+	pollInterval := config.GetEnvDuration("POLL_INTERVAL", 4*time.Second)
 
 	appInstance, err := app.New(addr, pollInterval)
 	if err != nil {

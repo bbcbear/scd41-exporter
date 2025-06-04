@@ -24,6 +24,13 @@ type App struct {
 	isSensorHealthy atomic.Bool
 }
 
+type ReadResult int
+
+const (
+	ReadSuccess ReadResult = iota
+	DataNotReady
+	ReadFailed
+)
 // I2CBusAdapter адаптирует *i2c.Dev к интерфейсу sensor.Bus
 type I2CBusAdapter struct {
 	Dev *i2c.Dev
@@ -86,10 +93,18 @@ func (a *App) StartPolling(ctx context.Context, cancel context.CancelFunc) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			ok := a.readAndUpdate()
-			if !ok {
+			switch a.readAndUpdate() {
+			case ReadSuccess:
+				consecutiveFails = 0
+
+			case DataNotReady:
+				// данные просто не готовы — НЕ считаем как сбой
+				slog.Debug("Skipping update: data not ready")
+
+			case ReadFailed:
 				consecutiveFails++
 				slog.Warn("Sensor read failed", "consecutiveFails", consecutiveFails)
+
 				if consecutiveFails >= maxFails {
 					if a.recoverSensor() {
 						consecutiveFails = 0
@@ -97,25 +112,24 @@ func (a *App) StartPolling(ctx context.Context, cancel context.CancelFunc) {
 						slog.Warn("Sensor recovery failed, will retry later")
 					}
 				}
-			} else {
-				consecutiveFails = 0
 			}
 		}
 	}
 }
 
-func (a *App) readAndUpdate() bool {
-	measuring, err := a.Sensor.IsMeasuring()
+
+func (a *App) readAndUpdate() ReadResult {
+	dataReady, err := a.Sensor.IsMeasuring()
 	if err != nil {
 		metrics.IncReadError()
 		a.isSensorHealthy.Store(false)
 		slog.Error("Sensor status check failed", "error", err)
-		return false
+		return ReadFailed
 	}
-	if !measuring {
-		a.isSensorHealthy.Store(false)
-		slog.Warn("Sensor is not measuring, skipping update")
-		return false
+
+	if !dataReady {
+		slog.Debug("Sensor data not ready, skipping update")
+		return DataNotReady
 	}
 
 	data, err := a.Sensor.Read()
@@ -123,19 +137,18 @@ func (a *App) readAndUpdate() bool {
 		metrics.IncReadError()
 		a.isSensorHealthy.Store(false)
 		slog.Error("Failed to read sensor data", "error", err)
-		return false
+		return ReadFailed
 	}
 
 	a.isSensorHealthy.Store(true)
 	metrics.Update(data)
 	slog.Info("Sensor data updated")
-	return true
+	return ReadSuccess
 }
 
 func (a *App) recoverSensor() bool {
 	slog.Warn("Attempting to recover sensor")
 	_ = a.Sensor.Stop()
-	time.Sleep(300 * time.Millisecond)
 	if err := a.Sensor.Init(); err != nil {
 		slog.Error("Sensor re-init failed", "error", err)
 		return false
