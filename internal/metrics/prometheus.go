@@ -1,9 +1,8 @@
-
 package metrics
 
 import (
+	"github.com/bbcbear/scd41-exporter/internal/sensor"
 	"github.com/prometheus/client_golang/prometheus"
-	"bbcbear/scd41-exporter/internal/sensor"
 )
 
 var (
@@ -40,7 +39,7 @@ func IncReadError() {
 }
 
 func Update(m sensor.Measurement) {
-	SensorMetrics.WithLabelValues("co2", "ppm").Set(m.CO2)
-	SensorMetrics.WithLabelValues("temperature", "°C").Set(m.Temperature)
-	SensorMetrics.WithLabelValues("humidity", "%").Set(m.Humidity)
+	SensorMetrics.WithLabelValues("co2", "ppm").Set(float64(m.CO2))
+	SensorMetrics.WithLabelValues("temperature", "°C").Set(float64(m.Temperature))
+	SensorMetrics.WithLabelValues("humidity", "%").Set(float64(m.Humidity))
 }

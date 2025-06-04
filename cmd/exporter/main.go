@@ -7,15 +7,15 @@ import (
 	"syscall"
 	"time"
 
-	"bbcbear/scd41-exporter/internal/app"
-	"bbcbear/scd41-exporter/internal/config"
+	"github.com/bbcbear/scd41-exporter/internal/app"
+	"github.com/bbcbear/scd41-exporter/internal/config"
 	"log/slog"
 )
 
 func main() {
 	config.SetupLogger()
 	slog.Info("Application starting")
-	
+
 	addr := config.GetEnv("METRICS_ADDR", ":2113")
 	pollInterval := config.GetEnvDuration("POLL_INTERVAL", 2*time.Second)
 
