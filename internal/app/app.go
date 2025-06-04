@@ -1,26 +1,26 @@
 package app
 
 import (
-	"bbcbear/scd41-exporter/internal/handlers"
-	"bbcbear/scd41-exporter/internal/metrics"
-	"bbcbear/scd41-exporter/internal/sensor"
 	"context"
+	"github.com/bbcbear/scd41-exporter/internal/handlers"
+	"github.com/bbcbear/scd41-exporter/internal/metrics"
+	"github.com/bbcbear/scd41-exporter/internal/sensor"
 	"log/slog"
 	"net/http"
 	"sync/atomic"
 	"time"
 
+	"fmt"
 	"periph.io/x/conn/v3/i2c"
 	"periph.io/x/conn/v3/i2c/i2creg"
 	"periph.io/x/host/v3"
-	"fmt"
 )
 
 type App struct {
-	Sensor   sensor.Sensor
-	Bus      interface{ Close() error }
-	Addr     string
-	Interval time.Duration
+	Sensor          sensor.Sensor
+	Bus             interface{ Close() error }
+	Addr            string
+	Interval        time.Duration
 	isSensorHealthy atomic.Bool
 }
 
@@ -34,10 +34,10 @@ func (b *I2CBusAdapter) Tx(w, r []byte) error {
 }
 
 func initHardware() error {
-    if _, err := host.Init(); err != nil {
-        return fmt.Errorf("failed to initialize periph host: %w", err)
-    }
-    return nil
+	if _, err := host.Init(); err != nil {
+		return fmt.Errorf("failed to initialize periph host: %w", err)
+	}
+	return nil
 }
 
 func openI2CBus() i2c.BusCloser {
@@ -152,7 +152,7 @@ func (a *App) recoverSensor() bool {
 }
 
 func (a *App) StartHTTPServer(ctx context.Context) error {
-	router := handlers.Init(a.Sensor, a.isSensorHealthy)
+	router := handlers.Init(a.Sensor, &a.isSensorHealthy)
 
 	srv := &http.Server{
 		Addr:    a.Addr,
@@ -178,9 +178,9 @@ func (a *App) StartHTTPServer(ctx context.Context) error {
 }
 
 func (a *App) Shutdown() {
-    if err := a.Sensor.Stop(); err != nil {
-        slog.Error("Sensor stop failed", "error", err)
-    } else {
-        slog.Info("Sensor stopped successfully")
-    }
+	if err := a.Sensor.Stop(); err != nil {
+		slog.Error("Sensor stop failed", "error", err)
+	} else {
+		slog.Info("Sensor stopped successfully")
+	}
 }

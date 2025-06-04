@@ -1,17 +1,15 @@
 package handlers
 
 import (
-	"net/http"
-	"os"
 	"log/slog"
+	"net/http"
 	"sync/atomic"
-	"time"
 
+	"github.com/bbcbear/scd41-exporter/internal/sensor"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"bbcbear/scd41-exporter/internal/sensor"
 )
 
-func Init(sensorRef sensor.Sensor, isHealthy atomic.Bool) http.Handler {
+func Init(sensorRef sensor.Sensor, isHealthy *atomic.Bool) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.Handle("/metrics", promhttp.Handler())

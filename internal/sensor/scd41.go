@@ -1,55 +1,58 @@
 package sensor
 
 import (
-    "encoding/binary"
-    "fmt"
-    "math"
-    "time"
+	"encoding/binary"
+	"fmt"
 	"log/slog"
+	"time"
 )
 
 type Bus interface {
-    Tx(w, r []byte) error
+	Tx(w, r []byte) error
 }
 
 type Sensor interface {
-    Init() error
-    Stop() error
-    Clean() error
-    Read() (Measurement, error)
-    IsMeasuring() (bool, error)
+	Init() error
+	Stop() error
+	Clean() error
+	Read() (Measurement, error)
+	IsMeasuring() (bool, error)
 }
 
 type SCD4XSensor struct {
-    bus Bus
+	bus Bus
 }
 
 type Measurement struct {
-    CO2          float32
-    Temperature  float32
-    Humidity     float32
+	CO2         float32
+	Temperature float32
+	Humidity    float32
 }
 
 const (
-	cmdGetDataReadyStatus 			= 0xe4b8
-    cmdReadMeasurement              = 0xec05
-    cmdSetAmbientPressure           = 0xe000
-    cmdSetTemperatureOffset         = 0x241d
-    cmdStartPeriodicMeasurement     = 0x21b1
-    cmdStopPeriodicMeasurement      = 0x3f86
+	cmdGetDataReadyStatus       = 0xe4b8
+	cmdReadMeasurement          = 0xec05
+	cmdSetAmbientPressure       = 0xe000
+	cmdSetTemperatureOffset     = 0x241d
+	cmdStartPeriodicMeasurement = 0x21b1
+	cmdStopPeriodicMeasurement  = 0x3f86
 )
 
 func New(bus Bus) *SCD4XSensor {
-    return &SCD4XSensor{bus: bus}
+	return &SCD4XSensor{bus: bus}
 }
 
 func (s *SCD4XSensor) Init() error {
 	slog.Info("Sending start measurement command to SCD4X")
-    return s.sendCommand(cmdStartPeriodicMeasurement, nil)
+	return s.sendCommand(cmdStartPeriodicMeasurement, nil)
 }
 
 func (s *SCD4XSensor) Stop() error {
-    return s.sendCommand(cmdStopPeriodicMeasurement, nil)
+	return s.sendCommand(cmdStopPeriodicMeasurement, nil)
+}
+
+func (s *SCD4XSensor) Clean() error {
+	return nil
 }
 
 func (s *SCD4XSensor) Read() (Measurement, error) {
@@ -73,9 +76,9 @@ func (s *SCD4XSensor) Read() (Measurement, error) {
 	tempRaw := binary.BigEndian.Uint16(buf[3:5])
 	humRaw := binary.BigEndian.Uint16(buf[6:8])
 
-	co2 		:= float64(co2Raw)
-	temperature := -45.0 + 175.0*float64(tempRaw)/65535.0
-	humidity 	:= 100.0 * float64(humRaw) / 65535.0
+	co2 := float32(co2Raw)
+	temperature := float32(-45.0 + 175.0*float32(tempRaw)/65535.0)
+	humidity := float32(100.0 * float32(humRaw) / 65535.0)
 
 	return Measurement{
 		CO2:         co2,
@@ -84,28 +87,27 @@ func (s *SCD4XSensor) Read() (Measurement, error) {
 	}, nil
 }
 
-
 func (s *SCD4XSensor) sendCommand(cmd uint16, args []byte) error {
-    if args != nil && len(args)%2 != 0 {
-        return fmt.Errorf("arguments length must be even (pairs of bytes)")
-    }
+	if args != nil && len(args)%2 != 0 {
+		return fmt.Errorf("arguments length must be even (pairs of bytes)")
+	}
 
-    buf := []byte{byte(cmd >> 8), byte(cmd & 0xFF)}
-    if args != nil {
-        for i := 0; i < len(args); i += 2 {
-            chunk := args[i : i+2]
-            crc := calcCRC(chunk)
-            buf = append(buf, chunk[0], chunk[1], crc)
-        }
-    }
+	buf := []byte{byte(cmd >> 8), byte(cmd & 0xFF)}
+	if args != nil {
+		for i := 0; i < len(args); i += 2 {
+			chunk := args[i : i+2]
+			crc := calcCRC(chunk)
+			buf = append(buf, chunk[0], chunk[1], crc)
+		}
+	}
 
-    for attempt := 1; attempt <= 3; attempt++ {
-        if err := s.bus.Tx(buf, nil); err == nil {
-            return nil
-        }
-        time.Sleep(50 * time.Millisecond)
-    }
-    return fmt.Errorf("I2C Tx failed after retries")
+	for attempt := 1; attempt <= 3; attempt++ {
+		if err := s.bus.Tx(buf, nil); err == nil {
+			return nil
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return fmt.Errorf("I2C Tx failed after retries")
 }
 
 func (s *SCD4XSensor) IsMeasuring() (bool, error) {
@@ -126,20 +128,20 @@ func (s *SCD4XSensor) IsMeasuring() (bool, error) {
 }
 
 func validCRC(data []byte, crc byte) bool {
-    return calcCRC(data) == crc
+	return calcCRC(data) == crc
 }
 
 func calcCRC(data []byte) byte {
-    crc := byte(0xFF)
-    for _, b := range data {
-        crc ^= b
-        for i := 0; i < 8; i++ {
-            if crc&0x80 != 0 {
-                crc = (crc << 1) ^ 0x31
-            } else {
-                crc <<= 1
-            }
-        }
-    }
-    return crc
+	crc := byte(0xFF)
+	for _, b := range data {
+		crc ^= b
+		for i := 0; i < 8; i++ {
+			if crc&0x80 != 0 {
+				crc = (crc << 1) ^ 0x31
+			} else {
+				crc <<= 1
+			}
+		}
+	}
+	return crc
 }
